@@ -9,8 +9,6 @@ const no_schema = new Schema({}, { strict: false });
 const moment = require('moment-timezone');
 const mongodb_config = config.get('mongodb');
 const model = mongoose.model('advertinstances', no_schema, 'advertinstances');
-      console.log('Connecting to database.git );
-      database.connect(mongodb_config);
 
 module.exports.hello = (event, context, callback) => {
   mongodb_config.database_name = event.database_name;
@@ -24,6 +22,9 @@ module.exports.hello = (event, context, callback) => {
   });
 
   async.waterfall([
+    function (callback) {
+      database.connect(mongodb_config, callback);
+    },
     function (callback) {
       var tasks = {
         markAsDelete: function (callback) {
@@ -100,13 +101,11 @@ module.exports.hello = (event, context, callback) => {
     }
   ], function (err, result) {
     console.log('Finishing function execution.');
-    database.disconnect(function (err, result) {
-      if (!err) {
-        context.succeed(result);
-      } else {
-        context.fail(err);
-      }
-    });
+    if (!err) {
+      context.succeed(result);
+    } else {
+      context.fail(err);
+    }
   });
 }
 

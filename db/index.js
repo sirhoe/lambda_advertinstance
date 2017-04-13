@@ -7,11 +7,14 @@ mongoose.Promise = global.Promise; // Removes promise warning (https://github.co
 exports.connect = function (config, callback) {
     var dbUrl = _buildConnectionString(config);
     var dbOption = _buildConnectionOption(config);
-    database = mongoose.connect(dbUrl, dbOption);
-    database.connection.on('open', function () {
-        console.log('Connection to database opened.');
+    if (mongoose.connection.readyState != 1) {
+        database = mongoose.connect(dbUrl, dbOption, callback);
+        database.connection.on('open', function () {
+            console.log('Connection to database opened.');
+        });
+    } else {
         callback();
-    });
+    }
 };
 
 exports.disconnect = function (callback) {

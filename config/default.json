@@ -1,0 +1,22 @@
+{
+    "mongodb": {
+        "replicaSetName": "muulla0-shard-0",
+        "username": "muulla",
+        "password": "l2Wx8Z4cnd0nXuLR",
+        "ssl": true,
+        "servers": [
+            {
+                "host": "muulla0-shard-00-00-jvdiz.mongodb.net",
+                "port": "27017"
+            },
+            {
+                "host": "muulla0-shard-00-01-jvdiz.mongodb.net",
+                "port": "27017"
+            },
+            {
+                "host": "muulla0-shard-00-02-jvdiz.mongodb.net",
+                "port": "27017"
+            }
+        ]
+    }
+}

@@ -8,7 +8,9 @@ const Schema = mongoose.Schema;
 const no_schema = new Schema({}, { strict: false });
 const moment = require('moment-timezone');
 const mongodb_config = config.get('mongodb');
-const model = mongoose.model('advertinstances', no_schema, 'advertinstances');
+const AdvertInstanceModel = mongoose.model('advertinstances', no_schema, 'advertinstances');
+const AdvertModel = mongoose.model('adverts', no_schema, 'adverts');
+const LocationModel = mongoose.model('locations', no_schema, 'locations');
 
 module.exports.hello = (event, context, callback) => {
   mongodb_config.database_name = event.database_name;
@@ -17,20 +19,47 @@ module.exports.hello = (event, context, callback) => {
     + '. advert_id: ' + event.advert._id
     + '. locations length ' + event.locations.length);
 
+  const advert_id = mongoose.Types.ObjectId(event.advert._id);
   const locationIds = _.map(event.locations, function (location) {  // Copy the ids for the parallel tasks
-    return mongoose.Schema.ObjectId(location._id);
+    return mongoose.Types.ObjectId(location._id);
   });
 
   async.waterfall([
     function (callback) {
+      //connect to database if not already
       database.connect(mongodb_config, callback);
+    },
+    function (callback) {
+      //get advert and locations
+      var get_tasks = {
+        advert: function (callback) {
+          AdvertModel.findOne({ _id: advert_id }).lean().exec(function (err, result) {
+            console.log('Advert find ' + advert_id + '. result: ' + result.title);
+            callback(err, result);
+          });
+        },
+        locations: function (callback) {
+          LocationModel.find({
+            '_id': {
+              $in: locationIds
+            }
+          }).lean().exec(callback);
+        }
+      };
+      async.parallel(get_tasks, function (err, result) {
+        if (!err) {
+          event.advert = result.advert;
+          event.locations = result.locations;
+        }
+        callback(err);
+      });
     },
     function (callback) {
       var tasks = {
         markAsDelete: function (callback) {
-          model.update(
+          AdvertInstanceModel.update(
             {
-              'advert.id': mongoose.Schema.ObjectId(event.advert._id),
+              'advert.id': advert_id,
               'locations._id': { $nin: locationIds }
             },
             {
@@ -56,8 +85,10 @@ module.exports.hello = (event, context, callback) => {
 
           var chunks = _.chunk(locationIds, 100);
           async.eachSeries(chunks, function (chunk, callback) {
+            console.log('Cloning advet ' + event.advert._id);
             var advert_copy = _.cloneDeep(event.advert);
-            var bulk = model.collection.initializeUnorderedBulkOp();
+            console.log('Cloned advet ' + advert_copy._id);
+            var bulk = AdvertInstanceModel.collection.initializeUnorderedBulkOp();
 
             _.forEach(event.locations, function (location) {
               var advertinstance = {};
@@ -77,8 +108,8 @@ module.exports.hello = (event, context, callback) => {
               }
 
               var query = {
-                'advert._id': mongoose.Schema.ObjectId(advert_copy._id),
-                'location._id': mongoose.Schema.ObjectId(location._id)
+                'advert._id': mongoose.Types.ObjectId(advert_copy._id),
+                'location._id': mongoose.Types.ObjectId(location._id)
               };
               bulk.find(query).upsert().updateOne({ $set: advertinstance });
             });

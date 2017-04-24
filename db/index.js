@@ -13,6 +13,7 @@ exports.connect = function (config, callback) {
             console.log('Connection to database opened.');
         });
     } else {
+        console.log('Connection to database aleready opened.');
         callback();
     }
 };

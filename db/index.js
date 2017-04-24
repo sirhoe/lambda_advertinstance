@@ -31,7 +31,7 @@ function _buildConnectionString(dbConfig) {
         serverString += server.host + ':' + server.port + ',';
     });
 
-    return serverString.substring(0, serverString.length - 1) + '/' + dbConfig.name + '?ssl=' + dbConfig.ssl;
+    return serverString.substring(0, serverString.length - 1) + '/' + dbConfig.database_name + '?ssl=' + dbConfig.ssl;
 }
 
 function _buildConnectionOption(database) {

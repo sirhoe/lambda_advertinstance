@@ -1,11 +1,7 @@
 {
-    "advert": {
-        "_id": "57e1c2a8462f878a108c5d2f"
-    },
-    "locations": [
-        {
-            "_id": "57d63381f861cbc80fce3b9a"
-        }
+    "advert_id": "57e1c2a8462f878a108c5d2f",
+    "location_ids": [
+        "57d63381f861cbc80fce3b9a"
     ],
     "database_name": "airbux_loyalty"
 }

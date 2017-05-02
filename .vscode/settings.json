@@ -1,3 +1,9 @@
 {
-    "vsicons.presets.angular": false
+    "vsicons.projectDetection.autoReload": true,
+    "workbench.welcome.enabled": false,
+    "window.showFullPath": true,
+    "files.autoSave": "onFocusChange",
+    "editor.mouseWheelScrollSensitivity": 0.4,
+    "vsicons.presets.angular": false,
+    "editor.formatOnSave": true
 }

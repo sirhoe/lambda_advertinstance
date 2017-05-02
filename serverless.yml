@@ -11,7 +11,10 @@
 #
 # Happy Coding!
 
-service: lambda-advertinstance
+service: muulla
+
+plugins:
+  - serverless-offline
 
 # You can pin your service to only deploy with a specific Serverless version
 # Check out our docs for more details
@@ -22,7 +25,7 @@ provider:
   runtime: nodejs6.10
 
 # you can overwrite defaults here
-  stage: dev
+  stage: prod
   region: ap-southeast-2
 
 
@@ -57,7 +60,12 @@ provider:
 
 functions:
   hello:
-    handler: handler.hello
+    handler: handler.run
+    events:
+      - http:
+          path: advertinstances
+          method: post
+          cors: true
 
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events

@@ -12,16 +12,15 @@ const AdvertInstanceModel = mongoose.model('advertinstances', no_schema, 'advert
 const AdvertModel = mongoose.model('adverts', no_schema, 'adverts');
 const LocationModel = mongoose.model('locations', no_schema, 'locations');
 
-module.exports.hello = (event, context, callback) => {
+module.exports.run = (event, context, callback) => {
+  event = JSON.parse(event.body);
   mongodb_config.database_name = event.database_name;
 
-  console.log('Database: ' + event.database_name
-    + '. advert_id: ' + event.advert._id
-    + '. locations length ' + event.locations.length);
+  console.log('Input: ' + JSON.stringify(event));
 
-  const advert_id = mongoose.Types.ObjectId(event.advert._id);
-  const locationIds = _.map(event.locations, function (location) {  // Copy the ids for the parallel tasks
-    return mongoose.Types.ObjectId(location._id);
+  const advert_id = mongoose.Types.ObjectId(event.advert_id);
+  const location_ids = _.map(event.location_ids, function (location_id) {  // Copy the ids for the parallel tasks
+    return mongoose.Types.ObjectId(location_id);
   });
 
   async.waterfall([
@@ -34,14 +33,14 @@ module.exports.hello = (event, context, callback) => {
       var get_tasks = {
         advert: function (callback) {
           AdvertModel.findOne({ _id: advert_id }).lean().exec(function (err, result) {
-            console.log('Advert find ' + advert_id + '. result: ' + result.title);
+            console.log('Advert find ' + advert_id + '. Title: ' + result.title);
             callback(err, result);
           });
         },
         locations: function (callback) {
           LocationModel.find({
             '_id': {
-              $in: locationIds
+              $in: location_ids
             }
           }).lean().exec(callback);
         }
@@ -60,7 +59,7 @@ module.exports.hello = (event, context, callback) => {
           AdvertInstanceModel.update(
             {
               'advert.id': advert_id,
-              'locations._id': { $nin: locationIds }
+              'location._id': { $nin: location_ids }
             },
             {
               $set: { 'advert.status': 'deleted' }
@@ -71,7 +70,7 @@ module.exports.hello = (event, context, callback) => {
             },
             function (err, result) {
               if (!err)
-                console.log('Advertinstance updated with advert id ' + event.advert._id + '. Found ' + result.n + ' and marked ' + result.nModified + ' as deleted');
+                console.log('Advertinstance updated with advert id ' + event.advert_id + '. Found ' + result.n + ' and marked ' + result.nModified + ' as deleted');
               else
                 console.log('Error with Advertinstance update. Msg: ' + err.message);
               callback(err, result);
@@ -79,15 +78,13 @@ module.exports.hello = (event, context, callback) => {
           );
         },
         upsert: function (callback) {
-          if (_.isEmpty(locationIds)) {
+          if (_.isEmpty(location_ids)) {
             return callback(null);
           }
 
-          var chunks = _.chunk(locationIds, 100);
+          var chunks = _.chunk(location_ids, 100);
           async.eachSeries(chunks, function (chunk, callback) {
-            console.log('Cloning advet ' + event.advert._id);
             var advert_copy = _.cloneDeep(event.advert);
-            console.log('Cloned advet ' + advert_copy._id);
             var bulk = AdvertInstanceModel.collection.initializeUnorderedBulkOp();
 
             _.forEach(event.locations, function (location) {
@@ -133,8 +130,20 @@ module.exports.hello = (event, context, callback) => {
   ], function (err, result) {
     console.log('Finishing function execution.');
     if (!err) {
-      context.succeed(result);
+      var res = {
+        'isBase64Encoded': false,
+        'statusCode': 200,
+        'headers': {},
+        'body': JSON.stringify(result)
+      };
+      context.succeed(res);
     } else {
+      var err = {
+        'isBase64Encoded': false,
+        'statusCode': 502,
+        'headers': {},
+        'body': JSON.stringify(res)
+      };
       context.fail(err);
     }
   });

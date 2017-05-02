@@ -13,7 +13,11 @@ const AdvertModel = mongoose.model('adverts', no_schema, 'adverts');
 const LocationModel = mongoose.model('locations', no_schema, 'locations');
 
 module.exports.run = (event, context, callback) => {
-  event = JSON.parse(event.body);
+  try {
+    event = JSON.parse(event.body);
+  } catch (e) {
+    console.log('Fail to parse event.body');
+  }
   mongodb_config.database_name = event.database_name;
 
   console.log('Input: ' + JSON.stringify(event));
@@ -58,7 +62,7 @@ module.exports.run = (event, context, callback) => {
         markAsDelete: function (callback) {
           AdvertInstanceModel.update(
             {
-              'advert.id': advert_id,
+              'advert._id': advert_id,
               'location._id': { $nin: location_ids }
             },
             {
@@ -70,7 +74,8 @@ module.exports.run = (event, context, callback) => {
             },
             function (err, result) {
               if (!err)
-                console.log('Advertinstance updated with advert id ' + event.advert_id + '. Found ' + result.n + ' and marked ' + result.nModified + ' as deleted');
+                console.log('Advertinstance mark as deleted with advert id ' + event.advert_id
+                  + '. Found ' + result.n + ' and marked ' + result.nModified + ' as deleted');
               else
                 console.log('Error with Advertinstance update. Msg: ' + err.message);
               callback(err, result);
